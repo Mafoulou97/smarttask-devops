@@ -1,51 +1,43 @@
-version: '3.8'
 
 services:
   db:
     image: mongo:latest
     container_name: smarttask-db
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
     networks:
       - smarttask-net
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    volumes:
+      - smarttask-db-data:/data/db
+    restart: unless-stopped
 
   backend:
     build: ./backend
-    container_name: backend-container
-    restart: always
+    image: smarttask-backend:v1
+    container_name: smarttask-backend
+    networks:
+      - smarttask-net
     ports:
       - "5000:5000"
     environment:
-      - PORT=5000
-      - MONGO_URI=mongodb://db:27017/smarttask
+      - MONGO_URI=mongodb://smarttask-db:27017/smarttask
     depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - smarttask-net
+      - db
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
-    container_name: frontend-container
-    restart: always
+    image: smarttask-frontend:v1
+    container_name: smarttask-frontend
+    networks:
+      - smarttask-net
     ports:
       - "80:80"
     depends_on:
       - backend
-    networks:
-      - smarttask-net
-
-volumes:
-  mongo_data:
+    restart: unless-stopped
 
 networks:
   smarttask-net:
     driver: bridge
+
+volumes:
+  smarttask-db-data:
